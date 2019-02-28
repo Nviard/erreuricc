@@ -1,35 +1,129 @@
 import numpy as np
+import random
+import sys
+
+random.seed(0)
+
+iterations = 1000
+gen_size = 100
+proba_h = 0.7
+proba_mutation = 0.8
+
+vpics = {}
+hpics = {}
 
 class Slideshow():
 	def __init__(self):
 		self._slides = []
+		self._pics = set([])
 
 	def score(self):
 		res = 0
 		for n in range(len(self._slides) - 1):
-			s = self._slides[n]
-			t = self._slides[n+1]
+			s = self._slides[n]._tags
+			t = self._slides[n+1]._tags
 			res += min(len(s & t), len(s - t), len(t-s))
 		return res
 
-class VSlide(Slide):
+	def add_slide(self):
+		if random.random() > proba_h:
+			available_pics = hpics.keys() - self._pics
+			if len(available_pics) > 0:
+				pic = random.sample(available_pics, 1)[0]
+				self._slides.append(HSlide(pic, hpics[pic]))
+				self._pics.add(pic)
+		else:
+			available_pics = vpics.keys() - self._pics
+			if len(available_pics) > 1:
+				pic1, pic2 = random.sample(available_pics, 2)
+				self._slides.append(VSlide(pic1, vpics[pic1], pic2, vpics[pic2]))
+				self._pics.add(pic1)
+				self._pics.add(pic2)
+
+		return self
+
+	def __repr__(self):
+		res = str(len(self._slides)) + "\n"
+		for s in self._slides:
+			res += str(s) + "\n"
+
+		return res
+
+class VSlide():
 	def __init__(self, O1, tags1, O2, tags2):
 		self._O1 = O1
 		self._O2 = O2
 		self._tags = set([*tags1, *tags2])
 
-class HSlide(Slide):
-	def __init__(self, tags):
+	def __repr__(self):
+			return str(self._O1) + " " + str(self._O2)
+
+class HSlide():
+	def __init__(self, O, tags):
+		self._O = O
 		self._tags = set(tags)
+
+	def __repr__(self):
+		return str(self._O)
+
+class Generation():
+	def __init__(self):
+		self._slideshows = []
+
+
+	@classmethod
+	def new(cls, size):
+		res = cls()
+		for i in range(size):
+			slideshow = Slideshow()
+			slideshow.add_slide()
+			res._slideshows.append(slideshow)
+
+		return res
+
+	def mutation(self):
+		for s in self._slideshows:
+			if random.random() > proba_mutation:
+				self._slideshows.append(s.add_slide())
+
+	def selection(self):
+		candidates = self._slideshows.copy()
+		new_slideshows = []
+		while len(new_slideshows) < gen_size:
+			c1, c2 = random.sample(candidates, 2)
+			if c1.score() > c2.score():
+				new_slideshows.append(c1)
+				candidates.remove(c1)
+			else:
+				new_slideshows.append(c2)
+				candidates.remove(c2)
+		self._slideshows = new_slideshows
+		return self
+
+	def best(self):
+		best_score = 0
+		for s in self._slideshows:
+			score = s.score()
+			if score >= best_score:
+				best_score = score
+				best_slideshow = s
+		return best_slideshow
 
 N = int(input())
 
-vpics = {}
-hpics = {}
-
 for i in range(N):
 	O, M, *tags = input().split()
-	if M == "V":
-		vslides[O]=(set(tags))
+	if O == "V":
+		vpics[i]=(set(tags))
 	else:
-		hslides[O]=(set(tags))
+		hpics[i]=(set(tags))
+	print(i	, file=sys.stderr)
+
+print("lol"	, file=sys.stderr)
+generation = Generation.new(gen_size)
+for it in range(iterations):
+	# print(it, file=sys.stderr)
+	generation.mutation()
+	generation.selection()
+
+print(generation.best())
