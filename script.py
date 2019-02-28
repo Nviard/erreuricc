@@ -5,9 +5,9 @@ import sys
 random.seed(0)
 
 iterations = 1000
-gen_size = 100
+gen_size = 20
 proba_h = 0.7
-proba_mutation = 0.8
+proba_mutation = 1.0
 
 vpics = {}
 hpics = {}
@@ -26,7 +26,7 @@ class Slideshow():
 		return res
 
 	def add_slide(self):
-		if random.random() > proba_h:
+		if random.random() < proba_h:
 			available_pics = hpics.keys() - self._pics
 			if len(available_pics) > 0:
 				pic = random.sample(available_pics, 1)[0]
@@ -72,24 +72,25 @@ class Generation():
 
 
 	@classmethod
-	def new(cls, size):
+	def from_slides(cls, slides):
 		res = cls()
-		for i in range(size):
-			slideshow = Slideshow()
-			slideshow.add_slide()
-			res._slideshows.append(slideshow)
+		res._slides = slides
+		for slide in res._slides:
+			res._pics.update(slide.pics)
 
-		return res
+
 
 	def mutation(self):
 		for s in self._slideshows:
-			if random.random() > proba_mutation:
+			if random.random() < proba_mutation:
 				self._slideshows.append(s.add_slide())
+		return self
 
 	def selection(self):
 		candidates = self._slideshows.copy()
 		new_slideshows = []
 		while len(new_slideshows) < gen_size:
+			print(len(candidates))
 			c1, c2 = random.sample(candidates, 2)
 			if c1.score() > c2.score():
 				new_slideshows.append(c1)
@@ -107,6 +108,7 @@ class Generation():
 			if score >= best_score:
 				best_score = score
 				best_slideshow = s
+		print("score " + str(score), file=sys.stderr)
 		return best_slideshow
 
 N = int(input())
@@ -117,13 +119,15 @@ for i in range(N):
 		vpics[i]=(set(tags))
 	else:
 		hpics[i]=(set(tags))
-	print(i	, file=sys.stderr)
 
 print("lol"	, file=sys.stderr)
 generation = Generation.new(gen_size)
+print("taille apres gen %d" % len(generation._slideshows), file=sys.stderr)
 for it in range(iterations):
-	# print(it, file=sys.stderr)
 	generation.mutation()
+	print("taille apres mut %d" % len(generation._slideshows), file=sys.stderr)
 	generation.selection()
+	print("taille apres gen %d" %len(generation._slideshows), file=sys.stderr)
+
 
 print(generation.best())
